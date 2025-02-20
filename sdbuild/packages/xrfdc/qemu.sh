@@ -9,7 +9,6 @@ set -e
 for f in /etc/profile.d/*.sh; do source $f; done
 
 export HOME=/root
-export BOARD=${PYNQ_BOARD}
 
 cd /root/xrfdc_build
 

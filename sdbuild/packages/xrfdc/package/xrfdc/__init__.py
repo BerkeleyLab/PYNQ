@@ -1,14 +1,11 @@
 #   Copyright (c) 2018, Xilinx, Inc.
 #   SPDX-License-Identifier: BSD-3-Clause
 
-
 import cffi
 import os
 import pynq
 import warnings
 from wurlitzer import pipes
-
-
 
 
 _THIS_DIR = os.path.dirname(__file__)
@@ -349,15 +346,6 @@ class RFdcAdcTile(RFdcTile):
 
 
 class RFdc(pynq.DefaultIP):
-    """The class RFdc is bound to the IP xilinx.com:ip:usp_rf_data_converter:2.3,
-    xilinx.com:ip:usp_rf_data_converter:2.4 or xilinx.com:ip:usp_rf_data_converter:2.6.
-    Once the overlay is loaded, the data converter IP will be allocated the driver
-    code implemented in this class.
-
-    For a complete list of wrapped functions see:
-    https://github.com/Xilinx/PYNQ/tree/master/sdbuild/packages/xrfdc/package
-    """
-    
     bindto = ["xilinx.com:ip:usp_rf_data_converter:2.6",
               "xilinx.com:ip:usp_rf_data_converter:2.4", 
               "xilinx.com:ip:usp_rf_data_converter:2.3"]
@@ -378,9 +366,21 @@ class RFdc(pynq.DefaultIP):
         _lib.XRFdc_CfgInitialize(self._instance, self._config)
         self.adc_tiles = [RFdcAdcTile(self, i) for i in range(4)]
         self.dac_tiles = [RFdcDacTile(self, i) for i in range(4)]
+        self.mts_adc_config = _ffi.new('XRFdc_MultiConverter_Sync_Config*')
+        self.mts_dac_config = _ffi.new('XRFdc_MultiConverter_Sync_Config*')
+        _safe_wrapper("XRFdc_MultiConverter_Init", self.mts_adc_config, cffi.FFI.NULL, cffi.FFI.NULL)
+        _safe_wrapper("XRFdc_MultiConverter_Init", self.mts_dac_config, cffi.FFI.NULL, cffi.FFI.NULL)
+
 
     def _call_function(self, name, *args):
         _safe_wrapper(f"XRFdc_{name}", self._instance, *args)
+
+    def mts_adc(self):
+        return _safe_wrapper("XRFdc_MultiConverter_Sync", self._instance, 0, self.mts_adc_config)
+
+    def mts_dac(self):
+        return _safe_wrapper("XRFdc_MultiConverter_Sync", self._instance, 1, self.mts_dac_config)
+
 
 
 # Finally we can add our data-driven properties to each class in the hierarchy
@@ -448,6 +448,3 @@ TRSHD_OFF                  = 0x0
 TRSHD_STICKY_OVER          = 0x1
 TRSHD_STICKY_UNDER         = 0x2
 TRSHD_HYSTERISIS           = 0x3
-
-
-

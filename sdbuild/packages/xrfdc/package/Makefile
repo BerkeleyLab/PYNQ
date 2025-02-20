@@ -25,7 +25,7 @@ $(LIBRARY): $(EMBEDDEDSW_DIR) $(LIB_METAL_INC)
 
 install:
 	cp $(LIBRARY) $(PACKAGE)/
-	pip3 install .
+	pip3 install . --upgrade
 
 $(EMBEDDEDSW_DIR):
 	git clone https://github.com/Xilinx/embeddedsw \
