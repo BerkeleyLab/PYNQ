@@ -8,12 +8,11 @@ set -e
 . /etc/environment
 for f in /etc/profile.d/*.sh; do source $f; done
 
-export HOME=/root
+export HOME=/tmp
 export BOARD=${PYNQ_BOARD}
 
-cd /root/xrfclk_build
+cd /tmp/xrfclk_build
 
 pip3 install .
 
-cd /root
-rm -rf xrfclk_build
+rm -rf /tmp/xrfclk_build

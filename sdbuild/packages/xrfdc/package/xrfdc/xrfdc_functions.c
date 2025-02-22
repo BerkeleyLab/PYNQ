@@ -52,33 +52,42 @@ typedef struct {
 * ClkIntraTile Settings.
 */
 typedef struct {
+	u8 SourceType;
 	u8 SourceTile;
-	u8 PLLEnable;
-	XRFdc_PLL_Settings PLLSettings;
+	u32 PLLEnable;
+	double RefClkFreq;
+	double SampleRate;
 	u8 DivisionFactor;
-	u8 Delay;
 	u8 DistributedClock;
+	u8 Delay;
 } XRFdc_Tile_Clock_Settings;
-/**
-* Clk Distribution.
-*/
-typedef struct {
-	u8 Enabled;
-	u8 DistributionSource;
-	u8 UpperBound;
-	u8 LowerBound;
-	u8 MaxDelay;
-	u8 MinDelay;
-	u8 IsDelayBalanced;
-} XRFdc_Distribution;
 /**
 * Clk Distribution Settings.
 */
 typedef struct {
-	XRFdc_Tile_Clock_Settings DAC[4];
-	XRFdc_Tile_Clock_Settings ADC[4];
-	XRFdc_Distribution DistributionStatus[8];
+	u8 MaxDelay;
+	u8 MinDelay;
+	u8 IsDelayBalanced;
+	u8 Source;
+	u8 UpperBound;
+	u8 LowerBound;
+	XRFdc_Tile_Clock_Settings ClkSettings[2][4]; /*[Type][Tile] e.g. ClkSettings[XRFDC_ADC_TILE][1] for ADC1*/
+} XRFdc_Distribution_Info;
+
+typedef struct {
+	u32 SourceType;
+	u32 SourceTileId;
+	u32 EdgeTileIds[2];
+	u32 EdgeTypes[2];
+	double DistRefClkFreq;
+	u32 DistributedClock;
+	double SampleRates[2][4]; /*[Type][Tile] e.g. ClkSettings[XRFDC_ADC_TILE][1] for ADC1*/
+	u32 ShutdownMode;
+	XRFdc_Distribution_Info Info;
 } XRFdc_Distribution_Settings;
+typedef struct {
+	XRFdc_Distribution_Settings Distributions[8];
+} XRFdc_Distribution_System_Settings;
 
 /**
  * MTS DTC Settings.
@@ -126,12 +135,9 @@ typedef struct {
 	u8 TimeConstant;
 	u8 Flush;
 	u8 EnableIntegrator;
-	u16 HighThreshold;
-	u16 LowThreshold;
-	u16 HighThreshOnTriggerCnt; /* the number of times value must exceed HighThreshold before turning on*/
-	u16 HighThreshOffTriggerCnt; /* the number of times value must be less than HighThreshold before turning off*/
-	u16 LowThreshOnTriggerCnt; /* the number of times value must exceed LowThreshold before turning on*/
-	u16 LowThreshOffTriggerCnt; /* the number of times value must be less than LowThreshold before turning off*/
+	u16 Threshold;
+	u16 ThreshOnTriggerCnt; /* the number of times value must exceed Threshold before turning on*/
+	u16 ThreshOffTriggerCnt; /* the number of times value must be less than Threshold before turning off*/
 	u8 HysteresisEnable;
 } XRFdc_Signal_Detector_Settings;
 /**
@@ -308,6 +314,7 @@ typedef struct {
 	u32 MultibandConfig;
 	double MaxSampleRate;
 	u32 NumSlices;
+	u32 LinkCoupling;
 	XRFdc_DACBlock_AnalogDataPath_Config DACBlock_Analog_Config[4];
 	XRFdc_DACBlock_DigitalDataPath_Config DACBlock_Digital_Config[4];
 } XRFdc_DACTile_Config;
@@ -530,12 +537,13 @@ u32 XRFdc_DynamicPLLConfig(XRFdc *InstancePtr, u32 Type, u32 Tile_Id, u8 Source,
 			   double SamplingRate);
 u32 XRFdc_SetInvSincFIR(XRFdc *InstancePtr, u32 Tile_Id, u32 Block_Id, u16 Mode);
 u32 XRFdc_GetInvSincFIR(XRFdc *InstancePtr, u32 Tile_Id, u32 Block_Id, u16 *ModePtr);
+u32 XRFdc_GetCoupling(XRFdc *InstancePtr, u32 Type, u32 Tile_Id, u32 Block_Id, u32 *ModePtr);
 u32 XRFdc_GetLinkCoupling(XRFdc *InstancePtr, u32 Tile_Id, u32 Block_Id, u32 *ModePtr);
 u32 XRFdc_GetFabClkOutDiv(XRFdc *InstancePtr, u32 Type, u32 Tile_Id, u16 *FabClkDivPtr);
 u32 XRFdc_SetDither(XRFdc *InstancePtr, u32 Tile_Id, u32 Block_Id, u32 Mode);
 u32 XRFdc_GetDither(XRFdc *InstancePtr, u32 Tile_Id, u32 Block_Id, u32 *ModePtr);
 u32 XRFdc_SetClkDistribution(XRFdc *InstancePtr, XRFdc_Distribution_Settings *DistributionSettingsPtr);
-u32 XRFdc_GetClkDistribution(XRFdc *InstancePtr, XRFdc_Distribution_Settings *DistributionSettingsPtr);
+u32 XRFdc_GetClkDistribution(XRFdc *InstancePtr, XRFdc_Distribution_System_Settings *DistributionArrayPtr);
 u32 XRFdc_SetDataPathMode(XRFdc *InstancePtr, u32 Tile_Id, u32 Block_Id, u32 Mode);
 u32 XRFdc_GetDataPathMode(XRFdc *InstancePtr, u32 Tile_Id, u32 Block_Id, u32 *ModePtr);
 u32 XRFdc_SetIMRPassMode(XRFdc *InstancePtr, u32 Tile_Id, u32 Block_Id, u32 Mode);
@@ -559,4 +567,5 @@ u32 XRFdc_GetPwrMode(XRFdc *InstancePtr, u32 Type, u32 Tile_Id, u32 Block_Id, XR
 u32 XRFdc_ResetInternalFIFOWidth(XRFdc *InstancePtr, u32 Type, u32 Tile_Id, u32 Block_Id);
 u32 XRFdc_ResetInternalFIFOWidthObs(XRFdc *InstancePtr, u32 Tile_Id, u32 Block_Id);
 u32 XRFdc_MultiConverter_Sync(XRFdc *InstancePtr, u32 Type, XRFdc_MultiConverter_Sync_Config *ConfigPtr);
-void XRFdc_MultiConverter_Init(XRFdc_MultiConverter_Sync_Config *ConfigPtr, int *PLL_CodesPtr, int *T1_CodesPtr);
+u32 XRFdc_MultiConverter_Init(XRFdc_MultiConverter_Sync_Config *ConfigPtr, int *PLL_CodesPtr, int *T1_CodesPtr,
+			      u32 RefTile);

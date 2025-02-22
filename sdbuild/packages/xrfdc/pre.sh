@@ -8,4 +8,4 @@ set -x
 target=$1
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-sudo cp -r $script_dir/package $target/root/xrfdc_build
+sudo cp -r $script_dir/package $target/tmp/xrfdc_build

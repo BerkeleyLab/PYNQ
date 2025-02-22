@@ -8,14 +8,13 @@ set -e
 . /etc/environment
 for f in /etc/profile.d/*.sh; do source $f; done
 
-export HOME=/root
+export HOME=/tmp
 
-cd /root/xrfdc_build
+cd /tmp/xrfdc_build
 
 
 make embeddedsw
 make
 make install
 
-cd /root
-rm -rf xrfdc_build
+rm -rf /tmp/xrfdc_build
